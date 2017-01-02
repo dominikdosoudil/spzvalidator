@@ -11,5 +11,4 @@ Vue.use(VueResource);
 
 new Vue({
     el: '#app',
-
 });

@@ -9,7 +9,8 @@
         <p v-if="error & errorEnum.WRONG_CHARS">SPZ může obsahovat pouze čísla a znaky abecedy bez diakritiky kromě O, Q, W a G.</p>
         <p v-if="error & errorEnum.NO_NUM">SPZ musí obsahovat alespoň jedno číslo</p>
         <p v-if="error & errorEnum.ALREADY_USED">Tato SPZ je již registrována</p>
-        <p v-if="error & errorEnum.API_OFFLINE">Omlouváme se, ale služba kontrolující duplicitu SPZ je momentálně offline.<p>
+        <p v-if="error & errorEnum.API_OFFLINE">Omlouváme se, ale služba pro kontrolu duplicity a registraci SPZ je momentálně offline.<p>
+        <button v-if="error === 0 | error === 16" v-on:click="apiPost">Registrovat</button>
     </div>
 </template>
 <style>
@@ -41,8 +42,11 @@
         watch: {
             spz: function(spz) {
                 this.validator(spz);
-                this.apiCall(spz);
+                this.apiGet(spz);
             }
+        },
+        mounted(){
+            this.validator(this.spz);
         },
         methods: {
             addError(error){
@@ -74,17 +78,30 @@
                     this.removeError('NO_NUM');
                 }
             },
-            apiCall(spz){
+            apiGet(spz){
                 console.log('Calling the API.');
                 this.$http.get('/api.php', {params: {spz: spz}}).then((response) => {
                     this.removeError('API_OFFLINE');
-                    console.log(response);
                     if(response.body > 0) {
                         this.addError('ALREADY_USED');
                     } else {
                         this.removeError('ALREADY_USED');
                     }
                 }, (response) => {
+                    this.addError('API_OFFLINE');
+                });
+            },
+            apiPost(){
+                this.spz = this.spz.toUpperCase();
+                this.$http.post('/api.php',{spz: this.spz}).then((response) => {
+                    this.removeError('API_OFFLINE');
+                    console.log(response);
+                    if(response.body == 1) {
+                        alert('Registrováno.');
+                        this.apiGet(this.spz);
+                    }
+                }, (response) => {
+                    console.log(response);
                     this.addError('API_OFFLINE');
                 });
             }
@@ -100,6 +117,10 @@
                 val = val.toString();
                 return val.toUpperCase();
             }
-        }
+        },
+        http: {
+            emulateJSON: true,
+            emulateHTTP: true
+        },
     }
 </script>
